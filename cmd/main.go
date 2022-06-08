@@ -12,9 +12,10 @@ func main() {
 	b.Add("One")
 	b.Add("Two")
 	b.Add("Three")
+	b.Remove(2)
 
-	for _, v := range b {
-		fmt.Println(v)
-	}
+	b.SetCompleted(2)
+
+	fmt.Println(b.String())
 
 }

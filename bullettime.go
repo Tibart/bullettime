@@ -2,6 +2,7 @@ package bullettime
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -41,15 +42,34 @@ type bullet struct {
 	modified    time.Time
 }
 
-func (b bullet) String() string {
-	return fmt.Sprintf(" %2s | %10s | %-20s | %10s |",
-		b.status.String(),
-		b.reference,
-		b.description,
-		b.scheduled.Format("2006-01-02"))
+type Bullets []bullet
+
+func (b Bullets) String() string {
+	s := strings.Builder{}
+	s.WriteString(" Bullet-time\n")
+	s.WriteString(getLine((74)))
+	for i, v := range b {
+		s.WriteString(
+			fmt.Sprintf(" %02d | %s | %-34s | %-12s | %10s |\n",
+				i+1,
+				v.status.String(),
+				v.description,
+				v.reference,
+				v.scheduled.Format("2006-01-02")))
+	}
+
+	return s.String()
 }
 
-type Bullets []bullet
+func getLine(width int) string {
+	ln := strings.Builder{}
+	for i := 0; i < width; i++ {
+		ln.WriteRune('-')
+	}
+	ln.WriteRune('\n')
+
+	return ln.String()
+}
 
 func (b *Bullets) Add(task string) error {
 	newTask := bullet{
@@ -61,6 +81,31 @@ func (b *Bullets) Add(task string) error {
 		modified:    time.Now().UTC().Local(),
 	}
 	*b = append(*b, newTask)
+
+	return nil
+}
+
+func (b *Bullets) Remove(id int) error {
+	bl := *b
+	id -= 1
+	if id > len(bl) || id < 0 {
+		return fmt.Errorf("id is out of scope")
+	}
+
+	*b = append(bl[:id], bl[id+1:]...)
+
+	return nil
+}
+
+func (b *Bullets) SetCompleted(id int) error {
+	ls := *b
+	id -= 1
+	if id > len(ls) || id < 0 {
+		return fmt.Errorf("id is out of scope")
+	}
+
+	ls[id].modified = time.Now()
+	ls[id].status = Completed
 
 	return nil
 }
