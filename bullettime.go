@@ -71,12 +71,12 @@ func getLine(width int) string {
 	return ln.String()
 }
 
-func (b *Bullets) Add(task string) error {
+func (b *Bullets) Add(task, reference string, date time.Time) error {
 	newTask := bullet{
 		status:      Scheduled,
 		description: task,
 		reference:   "",
-		scheduled:   time.Now().UTC().Truncate(time.Duration(time.Now().Day())),
+		scheduled:   date,
 		created:     time.Now().UTC().Local(),
 		modified:    time.Now().UTC().Local(),
 	}
@@ -87,25 +87,66 @@ func (b *Bullets) Add(task string) error {
 
 func (b *Bullets) Remove(id int) error {
 	bl := *b
-	id -= 1
-	if id > len(bl) || id < 0 {
+	idx := id - 1
+	if id > len(bl) || idx < 0 {
 		return fmt.Errorf("id is out of scope")
 	}
 
-	*b = append(bl[:id], bl[id+1:]...)
+	*b = append(bl[:idx], bl[idx+1:]...)
 
 	return nil
 }
 
-func (b *Bullets) SetCompleted(id int) error {
-	ls := *b
-	id -= 1
-	if id > len(ls) || id < 0 {
+func (b *Bullets) Complete(id int) error {
+	bl := *b
+	idx := id - 1
+	if id > len(bl) || idx < 0 {
 		return fmt.Errorf("id is out of scope")
 	}
 
-	ls[id].modified = time.Now()
-	ls[id].status = Completed
+	bl[idx].modified = time.Now()
+	bl[idx].status = Completed
+
+	return nil
+}
+
+func (b *Bullets) Reschedule(id, days int) error {
+	bl := *b
+	idx := id - 1
+	if id > len(bl) || idx < 0 {
+		return fmt.Errorf("id is out of scope")
+	}
+
+	bullet := &bl[idx]
+	bullet.modified = time.Now()
+	bullet.status = Rescheduled
+	b.Add(bullet.description, bullet.reference, bullet.scheduled.Add(time.Duration(days)*(time.Hour*24)))
+
+	return nil
+}
+
+func (b *Bullets) Postpone(id int) error {
+	bl := *b
+	idx := id - 1
+	if id > len(bl) || idx < 0 {
+		return fmt.Errorf("id is out of scope")
+	}
+
+	bl[idx].modified = time.Now()
+	bl[idx].status = Postponed
+
+	return nil
+}
+
+func (b *Bullets) Cancel(id int) error {
+	bl := *b
+	idx := id - 1
+	if id > len(bl) || idx < 0 {
+		return fmt.Errorf("id is out of scope")
+	}
+
+	bl[idx].modified = time.Now()
+	bl[idx].status = Canceled
 
 	return nil
 }
