@@ -18,7 +18,7 @@ func main() {
 	b.Add("Seven", "", time.Now())
 
 	b.Remove(2)
-	b.SetCompleted(2)
+	b.Complete(2)
 	b.Reschedule(3, 2)
 	b.Postpone(4)
 	b.Cancel(5)

@@ -34,6 +34,7 @@ func (s Status) String() string {
 }
 
 type bullet struct {
+	id          uint64
 	status      Status
 	reference   string
 	description string
@@ -71,12 +72,14 @@ func getLine(width int) string {
 	return ln.String()
 }
 
-func (b *Bullets) Add(task, reference string, date time.Time) error {
+func (b *Bullets) Add(task, reference string, dateTime time.Time) error {
+	id := uint64(len(*b) + 1)
 	newTask := bullet{
+		id:          id,
 		status:      Scheduled,
 		description: task,
-		reference:   "",
-		scheduled:   date,
+		reference:   reference,
+		scheduled:   dateTime,
 		created:     time.Now().UTC().Local(),
 		modified:    time.Now().UTC().Local(),
 	}
@@ -87,37 +90,31 @@ func (b *Bullets) Add(task, reference string, date time.Time) error {
 
 func (b *Bullets) Remove(id int) error {
 	bl := *b
-	idx := id - 1
-	if id > len(bl) || idx < 0 {
-		return fmt.Errorf("id is out of scope")
-	}
+	id, _ = b.getRealId(id)
 
-	*b = append(bl[:idx], bl[idx+1:]...)
+	*b = append(bl[:id], bl[id+1:]...)
 
 	return nil
 }
 
 func (b *Bullets) Complete(id int) error {
 	bl := *b
-	idx := id - 1
-	if id > len(bl) || idx < 0 {
-		return fmt.Errorf("id is out of scope")
-	}
+	id, _ = b.getRealId(id)
 
-	bl[idx].modified = time.Now()
-	bl[idx].status = Completed
+	bullet := &bl[id-1]
+
+	bullet.modified = time.Now()
+	bullet.status = Completed
 
 	return nil
 }
 
 func (b *Bullets) Reschedule(id, days int) error {
 	bl := *b
-	idx := id - 1
-	if id > len(bl) || idx < 0 {
-		return fmt.Errorf("id is out of scope")
-	}
+	id, _ = b.getRealId(id)
 
-	bullet := &bl[idx]
+	bullet := &bl[id-1]
+
 	bullet.modified = time.Now()
 	bullet.status = Rescheduled
 	b.Add(bullet.description, bullet.reference, bullet.scheduled.Add(time.Duration(days)*(time.Hour*24)))
@@ -127,26 +124,31 @@ func (b *Bullets) Reschedule(id, days int) error {
 
 func (b *Bullets) Postpone(id int) error {
 	bl := *b
-	idx := id - 1
-	if id > len(bl) || idx < 0 {
-		return fmt.Errorf("id is out of scope")
-	}
+	id, _ = b.getRealId(id)
 
-	bl[idx].modified = time.Now()
-	bl[idx].status = Postponed
+	bullet := &bl[id-1]
+
+	bullet.modified = time.Now()
+	bullet.status = Postponed
 
 	return nil
 }
 
 func (b *Bullets) Cancel(id int) error {
 	bl := *b
-	idx := id - 1
-	if id > len(bl) || idx < 0 {
-		return fmt.Errorf("id is out of scope")
-	}
+	id, _ = b.getRealId(id)
 
-	bl[idx].modified = time.Now()
-	bl[idx].status = Canceled
+	bullet := &bl[id-1]
+
+	bullet.modified = time.Now()
+	bullet.status = Canceled
 
 	return nil
+}
+
+func (b *Bullets) getRealId(id int) (int, error) {
+	if id > len(*b) || id < 1 {
+		return -1, fmt.Errorf("id is out of scope")
+	}
+	return id - 1, nil
 }
