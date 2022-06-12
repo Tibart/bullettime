@@ -9,13 +9,14 @@ import (
 
 func main() {
 	///t := bullettime.NewBullet()
+	now := time.Now()
 	b := bullettime.Bullets{}
-	b.Add("One", "", time.Now())
-	b.Add("Two", "", time.Now())
-	b.Add("Three", "", time.Now())
-	b.Add("Four", "", time.Now())
-	b.Add("Six", "", time.Now())
-	b.Add("Seven", "", time.Now())
+	b.Add("One", "", true, now)
+	b.Add("Two", "", false, now)
+	b.Add("Three", "", false, now)
+	b.Add("Four", "", false, now)
+	b.Add("Six", "", false, now)
+	b.Add("Seven", "", false, now)
 
 	b.Remove(2)
 	b.Complete(2)
@@ -24,5 +25,7 @@ func main() {
 	b.Cancel(5)
 
 	fmt.Println(b.String())
+
+	fmt.Println(b.GetSchedule())
 
 }
