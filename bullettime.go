@@ -101,7 +101,7 @@ func (b *Bullets) Complete(id int) error {
 	bl := *b
 	id, _ = b.getRealId(id)
 
-	bullet := &bl[id-1]
+	bullet := &bl[id]
 
 	bullet.modified = time.Now()
 	bullet.status = Completed
@@ -113,7 +113,7 @@ func (b *Bullets) Reschedule(id, days int) error {
 	bl := *b
 	id, _ = b.getRealId(id)
 
-	bullet := &bl[id-1]
+	bullet := &bl[id]
 
 	bullet.modified = time.Now()
 	bullet.status = Rescheduled
@@ -126,7 +126,7 @@ func (b *Bullets) Postpone(id int) error {
 	bl := *b
 	id, _ = b.getRealId(id)
 
-	bullet := &bl[id-1]
+	bullet := &bl[id]
 
 	bullet.modified = time.Now()
 	bullet.status = Postponed
@@ -138,7 +138,7 @@ func (b *Bullets) Cancel(id int) error {
 	bl := *b
 	id, _ = b.getRealId(id)
 
-	bullet := &bl[id-1]
+	bullet := &bl[id]
 
 	bullet.modified = time.Now()
 	bullet.status = Canceled
