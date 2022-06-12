@@ -1,8 +1,11 @@
 package bullettime
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -35,14 +38,14 @@ func (s Status) String() string {
 }
 
 type bullet struct {
-	id          uint64
-	status      Status
-	reference   string
-	description string
-	scheduled   time.Time
-	meeting     bool
-	created     time.Time
-	modified    time.Time
+	Id          uint64
+	Status      Status
+	Reference   string
+	Description string
+	DateTime    time.Time
+	Meeting     bool
+	Created     time.Time
+	Modified    time.Time
 }
 
 type Bullets []bullet
@@ -52,16 +55,16 @@ func (b Bullets) String() string {
 	s.WriteString(" Bullet-time\n")
 	s.WriteString(getLine((74)))
 	for i, v := range b {
-		if v.meeting {
-			v.description = fmt.Sprintf("%s - %s", v.scheduled.Format("15:04"), v.description)
+		if v.Meeting {
+			v.Description = fmt.Sprintf("%s - %s", v.DateTime.Format("15:04"), v.Description)
 		}
 		s.WriteString(
 			fmt.Sprintf(" %02d | %s | %-34s | %-12s | %10s |\n",
 				i+1,
-				v.status.String(),
-				v.description,
-				v.reference,
-				v.scheduled.Format("2006-01-02")))
+				v.Status.String(),
+				v.Description,
+				v.Reference,
+				v.DateTime.Format("2006-01-02")))
 	}
 
 	return s.String()
@@ -77,32 +80,62 @@ func getLine(width int) string {
 	return ln.String()
 }
 
-// TODO: make load function
 func (b *Bullets) Load(path string) error {
-	return errors.New("not implemented")
-}
-
-// TODO: make save to function
-func (b *Bullets) Save() error {
-	return errors.New("not implemented")
-}
-
-func (b *Bullets) Add(task string, reference string, meeting bool, scheduled time.Time) error {
-	id := uint64(len(*b) + 1)
-	scheduled = scheduled.Round(time.Duration(15 * time.Minute))
-	if !meeting {
-		scheduled = time.Date(scheduled.Year(), scheduled.Month(), scheduled.Day(), 0, 0, 0, 0, time.Local)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("path '%s' does not exist", path)
 	}
-	//t := time.Date(scheduled.Year(), scheduled.Month(), scheduled.Day(), scheduled.Hour(), scheduled.Round(time.Minute*15).Minute(), 0, 0, time.Local)
+
+	f, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if len(f) == 0 {
+		return fmt.Errorf("config file is empty")
+	}
+
+	err = json.Unmarshal(f, b)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Bullets) Save(path string) error {
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return fmt.Errorf("path '%s' does not exist", path)
+	}
+
+	d, err := json.Marshal(*b)
+	if err != nil {
+		return err
+	}
+
+	if err = ioutil.WriteFile(path, d, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Bullets) Add(task string, reference string, Meeting bool, dateTime time.Time) error {
+	id := uint64(len(*b) + 1)
+
+	dateTime = dateTime.Round(time.Duration(15 * time.Minute))
+	if !Meeting {
+		dateTime = time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.Local)
+	}
+
 	newTask := bullet{
-		id:          id,
-		status:      Scheduled,
-		description: task,
-		reference:   reference,
-		meeting:     meeting,
-		scheduled:   scheduled,
-		created:     time.Now(),
-		modified:    time.Now(),
+		Id:          id,
+		Status:      Scheduled,
+		Description: task,
+		Reference:   reference,
+		Meeting:     Meeting,
+		DateTime:    dateTime,
+		Created:     time.Now(),
+		Modified:    time.Now(),
 	}
 	*b = append(*b, newTask)
 
@@ -124,8 +157,8 @@ func (b *Bullets) Complete(id int) error {
 
 	bullet := &bl[id]
 
-	bullet.modified = time.Now()
-	bullet.status = Completed
+	bullet.Modified = time.Now()
+	bullet.Status = Completed
 
 	return nil
 }
@@ -136,9 +169,9 @@ func (b *Bullets) Reschedule(id, days int) error {
 
 	bullet := &bl[id]
 
-	bullet.modified = time.Now()
-	bullet.status = Rescheduled
-	b.Add(bullet.description, bullet.reference, bullet.meeting, bullet.scheduled.Add(time.Duration(days)*(time.Hour*24)))
+	bullet.Modified = time.Now()
+	bullet.Status = Rescheduled
+	b.Add(bullet.Description, bullet.Reference, bullet.Meeting, bullet.DateTime.Add(time.Duration(days)*(time.Hour*24)))
 
 	return nil
 }
@@ -149,8 +182,8 @@ func (b *Bullets) Postpone(id int) error {
 
 	bullet := &bl[id]
 
-	bullet.modified = time.Now()
-	bullet.status = Postponed
+	bullet.Modified = time.Now()
+	bullet.Status = Postponed
 
 	return nil
 }
@@ -161,8 +194,8 @@ func (b *Bullets) Cancel(id int) error {
 
 	bullet := &bl[id]
 
-	bullet.modified = time.Now()
-	bullet.status = Canceled
+	bullet.Modified = time.Now()
+	bullet.Status = Canceled
 
 	return nil
 }
@@ -172,8 +205,8 @@ func (b *Bullets) GetSchedule() string {
 
 	// Filter only bullets of today
 	for _, v := range *b {
-		if v.scheduled.Format("2006-01-02") == time.Now().Format("2006-01-02") &&
-			!(v.status == Canceled || v.status == Postponed) {
+		if v.DateTime.Format("2006-01-02") == time.Now().Format("2006-01-02") &&
+			!(v.Status == Canceled || v.Status == Postponed) {
 			ret = append(ret, v)
 		}
 	}
