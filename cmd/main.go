@@ -44,8 +44,6 @@ func main() {
 	b.Load(configPath)
 
 	//Set function flags
-	fmt.Println(b.String())
-
 	blt := bullettime.Bullet{}
 	if fa != "" {
 		blt.Description = fa
@@ -69,6 +67,8 @@ func main() {
 		// Add result
 		b.Add(blt)
 	}
+
+	fmt.Println(b.String())
 
 	// Interpreted flags
 	// switch strings.ToUpper(os.Args[1]) {
