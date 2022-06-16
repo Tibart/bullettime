@@ -37,7 +37,7 @@ func (s Status) String() string {
 	return ""
 }
 
-type bullet struct {
+type Bullet struct {
 	Id          uint64
 	Status      Status
 	Reference   string
@@ -48,14 +48,14 @@ type bullet struct {
 	Modified    time.Time
 }
 
-type Bullets []bullet
+type Bullets []Bullet
 
 func (b Bullets) String() string {
 	s := strings.Builder{}
 	s.WriteString(" Bullet-time\n")
 	s.WriteString(getLine((74)))
 	for i, v := range b {
-		if v.Meeting {
+		if isMeeting(v.DateTime) {
 			v.Description = fmt.Sprintf("%s - %s", v.DateTime.Format("15:04"), v.Description)
 		}
 		s.WriteString(
@@ -68,6 +68,14 @@ func (b Bullets) String() string {
 	}
 
 	return s.String()
+}
+
+func isMeeting(time time.Time) bool {
+	if time.Hour() == 0 && time.Minute() == 0 {
+		return false
+	}
+
+	return true
 }
 
 func getLine(width int) string {
@@ -119,25 +127,22 @@ func (b *Bullets) Save(path string) error {
 	return nil
 }
 
-func (b *Bullets) Add(task string, reference string, Meeting bool, dateTime time.Time) error {
+func (b *Bullets) Add(bullet Bullet) error {
+	// Set id
 	id := uint64(len(*b) + 1)
+	bullet.Id = id
 
-	dateTime = dateTime.Round(time.Duration(15 * time.Minute))
-	if !Meeting {
-		dateTime = time.Date(dateTime.Year(), dateTime.Month(), dateTime.Day(), 0, 0, 0, 0, time.Local)
+	// Set date and time
+	bullet.DateTime = bullet.DateTime.Round(time.Duration(15 * time.Minute))
+	if bullet.DateTime.Hour() == 0 && bullet.DateTime.Minute() == 0 {
+		bullet.DateTime = time.Date(bullet.DateTime.Year(), bullet.DateTime.Month(), bullet.DateTime.Day(), 0, 0, 0, 0, time.Local)
 	}
 
-	newTask := bullet{
-		Id:          id,
-		Status:      Scheduled,
-		Description: task,
-		Reference:   reference,
-		Meeting:     Meeting,
-		DateTime:    dateTime,
-		Created:     time.Now(),
-		Modified:    time.Now(),
-	}
-	*b = append(*b, newTask)
+	// Set create date time
+	bullet.Created = time.Now().Local()
+	bullet.Modified = time.Now().Local()
+
+	*b = append(*b, bullet)
 
 	return nil
 }
@@ -169,9 +174,14 @@ func (b *Bullets) Reschedule(id, days int) error {
 
 	bullet := &bl[id]
 
-	bullet.Modified = time.Now()
+	bullet.Modified = time.Now().Local()
 	bullet.Status = Rescheduled
-	b.Add(bullet.Description, bullet.Reference, bullet.Meeting, bullet.DateTime.Add(time.Duration(days)*(time.Hour*24)))
+
+	nb := Bullet{}
+	nb.Description = bullet.Description
+	nb.DateTime = bullet.DateTime.Add(time.Hour * 24)
+
+	b.Add(nb)
 
 	return nil
 }

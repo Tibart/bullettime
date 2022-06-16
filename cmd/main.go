@@ -3,56 +3,114 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
-	"strings"
 	"time"
 
 	"biglebowski.nl/bullettime"
 )
 
-func main() {
-	// Capture arguments
-	add := flag.NewFlagSet("add", flag.ExitOnError)
-	add_bd := add.String("bd", "", "Bullet description (mandatory)")
-	add_ref := add.String("ref", "", "External reference id")
-	add_d := add.String("d", time.Now().Format("2006-01-02"), "Bullet start date (yyyy-MM-dd)")
-	add_t := add.String("t", "", "Bullet meeting start time (hh:mm)")
-	add_m := add.Bool("m", false, "Bullet is an meeting")
-	add.Parse(os.Args[2:])
-	flag.Parse()
+const (
+	version    = 0.1
+	configPath = "./data.json"
+)
 
+var fa string
+var fd string
+var ft string
+var fc int
+var fm int
+var fp int
+var fr int
+
+func init() {
+	flag.StringVar(&fa, "a", "", "Set bullet `task` description")
+	flag.StringVar(&fd, "d", time.Now().Format("2006-01-02"), "Set bullet start `date` (yyyy-MM-dd)")
+	flag.StringVar(&ft, "t", "", "Set bullet meeting start `time` (hh:mm)")
+	flag.IntVar(&fc, "c", -1, "Complete bullet `number` (mandatory")
+	flag.IntVar(&fm, "m", -1, "Move bullet `number` to next day")
+	flag.IntVar(&fp, "p", -1, "Postpone bullet `number`")
+	flag.IntVar(&fr, "r", -1, "Revoke bullet `number`")
+	flag.Usage = func() {
+		fmt.Printf("Bullet time, version %v\nUsage of the program: \n", version)
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+}
+
+func main() {
 	// Construct bullet list
 	b := bullettime.Bullets{}
+	b.Load(configPath)
 
-	// Interpreted flags
-	switch strings.ToUpper(os.Args[1]) {
-	case "ADD":
-		if *add_bd == "" {
-			fmt.Println("Flag -bd (bullet description) is mandatory!")
-			os.Exit(1)
-		}
-		d, err := time.ParseInLocation("2006-01-02", *add_d, time.Local)
+	//Set function flags
+	fmt.Println(b.String())
+
+	blt := bullettime.Bullet{}
+	if fa != "" {
+		blt.Description = fa
+		d, err := time.ParseInLocation("2006-01-02", fd, time.Local)
 		if err != nil {
-			fmt.Printf("could not parse date string: %s\n", *add_d)
+			log.Printf("could not parse date string: %s\n", fd)
 			os.Exit(1)
 		}
-		if *add_m {
-			t, err := time.Parse("15:04", *add_t)
+		blt.DateTime = d
+		// Add time when given
+		if ft != "" {
+			t, err := time.Parse("15:04", ft)
 			if err != nil {
-				fmt.Printf("could not parse time string: %s\n", *add_t)
+				log.Printf("could not parse time string: %s\n", ft)
 				os.Exit(1)
 			}
 			// BUG: Must be better way to get duration
 			dur, _ := time.ParseDuration(fmt.Sprintf("%vh%vm", t.Hour(), t.Minute()))
-			d = d.Add(dur)
+			blt.DateTime = blt.DateTime.Add(dur)
 		}
-
-		if err = b.Add(*add_bd, *add_ref, *add_m, d); err != nil {
-			fmt.Println(err.Error())
-		}
-
-		//fmt.Println(*add_bd, *add_ref, *add_d, *add_t, *add_m)
+		// Add result
+		b.Add(blt)
 	}
+
+	// Interpreted flags
+	// switch strings.ToUpper(os.Args[1]) {
+	// case "ADD":
+	// 	if *add_b == "" {
+	// 		log.Println("flag -b (bullet description) is mandatory!")
+	// 		os.Exit(1)
+	// 	}
+	// 	d, err := time.ParseInLocation("2006-01-02", *add_d, time.Local)
+	// 	if err != nil {
+	// 		log.Printf("could not parse date string: %s\n", *add_d)
+	// 		os.Exit(1)
+	// 	}
+	// 	if *add_m {
+	// 		t, err := time.Parse("15:04", *add_t)
+	// 		if err != nil {
+	// 			log.Printf("could not parse time string: %s\n", *add_t)
+	// 			os.Exit(1)
+	// 		}
+	// 		// BUG: Must be better way to get duration
+	// 		dur, _ := time.ParseDuration(fmt.Sprintf("%vh%vm", t.Hour(), t.Minute()))
+	// 		d = d.Add(dur)
+	// 	}
+
+	// 	if err = b.Add(*add_b, *add_r, *add_m, d); err != nil {
+	// 		log.Println(err.Error())
+	// 	}
+	// case "LIST":
+	// 	fmt.Println(b.String())
+	// case "COMPLETE":
+	// 	i := *comp_n
+	// 	if i < 0 {
+	// 		log.Println("flag -n (bullet number) is mandatory!")
+	// 		os.Exit(1)
+	// 	}
+	// 	if i > len(b) {
+	// 		log.Println("bullet number does not exist")
+	// 		os.Exit(1)
+	// 	}
+
+	// 	b.Complete(i)
+	// }
 
 	//fmt.Println(*add_bd, *add_ref, *add_d, *add_t, *add_m)
 
@@ -74,9 +132,9 @@ func main() {
 
 	//b.Load("./test.json")
 
-	fmt.Println(b.String())
+	//fmt.Println(b.String())
 
-	fmt.Println(b.GetSchedule())
+	b.Save(configPath)
 
 	//err := b.Save("./test.json")
 
