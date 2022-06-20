@@ -22,6 +22,7 @@ var fc int
 var fm int
 var fp int
 var fr int
+var fdel int
 var fl bool
 
 func init() {
@@ -34,6 +35,7 @@ func init() {
 	flag.IntVar(&fm, "m", -1, "Move bullet `number` to next day")
 	flag.IntVar(&fp, "p", -1, "Postpone bullet `number`")
 	flag.IntVar(&fr, "r", -1, "Revoke bullet `number`")
+	flag.IntVar(&fdel, "del", -1, "delete bullet `number` from schedule")
 	// Presentation
 	flag.BoolVar(&fl, "l", false, "List all open bullets")
 
@@ -85,9 +87,49 @@ func main() {
 		b.Add(blt)
 	}
 
+	// Complete bullet
+	if fc > 0 {
+		if err := b.Complete(fc); err != nil {
+			log.Printf("could not complete bullet: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+
+	// Move bullet to next day
+	if fm > 0 {
+		if err := b.Reschedule(fm, 1); err != nil {
+			log.Printf("could not move bullet to the next day: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+
+	// Postpone bullet
+	if fp > 0 {
+		if err := b.Postpone(fp); err != nil {
+			log.Printf("could not postpone bullet: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+
+	// Cancel bullet
+	if fr > 0 {
+		if err := b.Cancel(fr); err != nil {
+			log.Printf("could not revoke bullet: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+
+	// Delete bullet
+	if fdel > 0 {
+		if err := b.Remove(fdel); err != nil {
+			log.Printf("could not remove bullet from schedule: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+
 	// List bullet journal
 	if fl {
-		fmt.Println(b.String())
+		fmt.Println(b.GetSchedule().String())
 	}
 
 	b.Save(configPath)

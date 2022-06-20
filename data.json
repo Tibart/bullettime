@@ -1,0 +1,42 @@
+[
+    {
+        "Id": 1,
+        "Status": 2,
+        "Reference": "",
+        "Description": "test1",
+        "DateTime": "2022-06-20T00:00:00+02:00",
+        "Meeting": false,
+        "Created": "2022-06-20T21:41:08.761908+02:00",
+        "Modified": "2022-06-20T21:44:37.028114+02:00"
+    },
+    {
+        "Id": 2,
+        "Status": 0,
+        "Reference": "",
+        "Description": "test2",
+        "DateTime": "2022-06-20T00:00:00+02:00",
+        "Meeting": false,
+        "Created": "2022-06-20T21:41:11.017908+02:00",
+        "Modified": "2022-06-20T21:41:11.017908+02:00"
+    },
+    {
+        "Id": 3,
+        "Status": 0,
+        "Reference": "",
+        "Description": "test3",
+        "DateTime": "2022-06-20T00:00:00+02:00",
+        "Meeting": false,
+        "Created": "2022-06-20T21:41:12.928043+02:00",
+        "Modified": "2022-06-20T21:41:12.928044+02:00"
+    },
+    {
+        "Id": 6,
+        "Status": 0,
+        "Reference": "",
+        "Description": "test1",
+        "DateTime": "2022-06-21T00:00:00+02:00",
+        "Meeting": false,
+        "Created": "2022-06-20T21:44:37.028116+02:00",
+        "Modified": "2022-06-20T21:44:37.028116+02:00"
+    }
+]

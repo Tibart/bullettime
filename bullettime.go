@@ -2,6 +2,7 @@ package bullettime
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -38,7 +39,7 @@ func (s Status) String() string {
 }
 
 type Bullet struct {
-	Id          uint64
+	Id          uint
 	Status      Status
 	Reference   string
 	Description string
@@ -54,13 +55,13 @@ func (b Bullets) String() string {
 	s := strings.Builder{}
 	s.WriteString(" Bullet-time\n")
 	s.WriteString(getLine((74)))
-	for i, v := range b {
+	for _, v := range b {
 		if isMeeting(v.DateTime) {
 			v.Description = fmt.Sprintf("%s - %s", v.DateTime.Format("15:04"), v.Description)
 		}
 		s.WriteString(
-			fmt.Sprintf(" %02d | %s | %-34s | %-12s | %10s |\n",
-				i+1,
+			fmt.Sprintf(" %03d | %s | %-34s | %-12s | %10s |\n",
+				v.Id,
 				v.Status.String(),
 				v.Description,
 				v.Reference,
@@ -129,7 +130,7 @@ func (b *Bullets) Save(path string) error {
 
 func (b *Bullets) Add(bullet Bullet) error {
 	// Set id
-	id := uint64(len(*b) + 1)
+	id := uint(len(*b) + 1)
 	bullet.Id = id
 
 	// Set date and time
@@ -149,37 +150,48 @@ func (b *Bullets) Add(bullet Bullet) error {
 
 func (b *Bullets) Remove(id int) error {
 	bl := *b
-	id, _ = b.getRealId(id)
+	id, _ = b.getIndex(id)
 
+	// BUG: If last element don't append
 	*b = append(bl[:id], bl[id+1:]...)
 
 	return nil
 }
 
 func (b *Bullets) Complete(id int) error {
-	bl := *b
-	id, _ = b.getRealId(id)
+	var err error
+	id, err = b.getIndex(id)
+	if err != nil {
+		return err
+	}
 
+	bl := *b
 	bullet := &bl[id]
 
-	bullet.Modified = time.Now()
 	bullet.Status = Completed
+	bullet.Modified = time.Now()
 
 	return nil
 }
 
 func (b *Bullets) Reschedule(id, days int) error {
-	bl := *b
-	id, _ = b.getRealId(id)
+	var err error
+	fmt.Println("input: ", id)
+	id, err = b.getIndex(id)
+	if err != nil {
+		return err
+	}
 
+	bl := *b
 	bullet := &bl[id]
 
-	bullet.Modified = time.Now().Local()
 	bullet.Status = Rescheduled
+	bullet.Modified = time.Now().Local()
 
 	nb := Bullet{}
 	nb.Description = bullet.Description
-	nb.DateTime = bullet.DateTime.Add(time.Hour * 24)
+	dur, _ := time.ParseDuration(fmt.Sprintf("%dh00m", days*24))
+	nb.DateTime = bullet.DateTime.Add(dur)
 
 	b.Add(nb)
 
@@ -187,9 +199,13 @@ func (b *Bullets) Reschedule(id, days int) error {
 }
 
 func (b *Bullets) Postpone(id int) error {
-	bl := *b
-	id, _ = b.getRealId(id)
+	var err error
+	id, err = b.getIndex(id)
+	if err != nil {
+		return err
+	}
 
+	bl := *b
 	bullet := &bl[id]
 
 	bullet.Modified = time.Now()
@@ -199,9 +215,13 @@ func (b *Bullets) Postpone(id int) error {
 }
 
 func (b *Bullets) Cancel(id int) error {
-	bl := *b
-	id, _ = b.getRealId(id)
+	var err error
+	id, err = b.getIndex(id)
+	if err != nil {
+		return err
+	}
 
+	bl := *b
 	bullet := &bl[id]
 
 	bullet.Modified = time.Now()
@@ -210,23 +230,31 @@ func (b *Bullets) Cancel(id int) error {
 	return nil
 }
 
-func (b *Bullets) GetSchedule() string {
+func (b *Bullets) GetSchedule() Bullets {
 	ret := Bullets{}
 
 	// Filter only bullets of today
 	for _, v := range *b {
-		if v.DateTime.Format("2006-01-02") == time.Now().Format("2006-01-02") &&
+		if v.DateTime.Format("2006-01-02") >= time.Now().Format("2006-01-02") &&
 			!(v.Status == Canceled || v.Status == Postponed) {
 			ret = append(ret, v)
 		}
 	}
 
-	return ret.String()
+	return ret
 }
 
-func (b *Bullets) getRealId(id int) (int, error) {
+func (b *Bullets) getIndex(id int) (int, error) {
 	if id > len(*b) || id < 1 {
 		return -1, fmt.Errorf("id is out of scope")
 	}
-	return id - 1, nil
+	bl := *b
+	for i := 0; i < len(bl); i++ {
+		if bl[i].Id == uint(id) {
+			fmt.Println(id, bl[i].Id, i)
+			return i, nil
+		}
+	}
+
+	return -1, errors.New("id not found")
 }
