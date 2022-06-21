@@ -130,8 +130,7 @@ func (b *Bullets) Save(path string) error {
 
 func (b *Bullets) Add(bullet Bullet) error {
 	// Set id
-	id := uint(len(*b) + 1)
-	bullet.Id = id
+	bullet.Id = b.getNextId()
 
 	// Set date and time
 	bullet.DateTime = bullet.DateTime.Round(time.Duration(15 * time.Minute))
@@ -149,11 +148,22 @@ func (b *Bullets) Add(bullet Bullet) error {
 }
 
 func (b *Bullets) Remove(id int) error {
-	bl := *b
-	id, _ = b.getIndex(id)
+	i, err := b.getIndex(id)
+	if err != nil {
+		return err
+	}
 
-	// BUG: If last element don't append
-	*b = append(bl[:id], bl[id+1:]...)
+	bl := *b
+	l := len(bl)
+	if l == 1 {
+		*b = Bullets{}
+	} else if i == 0 {
+		*b = bl[1:]
+	} else if i+1 == l {
+		*b = bl[:i]
+	} else {
+		*b = append(bl[:i], bl[i+1:]...)
+	}
 
 	return nil
 }
@@ -176,7 +186,6 @@ func (b *Bullets) Complete(id int) error {
 
 func (b *Bullets) Reschedule(id, days int) error {
 	var err error
-	fmt.Println("input: ", id)
 	id, err = b.getIndex(id)
 	if err != nil {
 		return err
@@ -245,16 +254,26 @@ func (b *Bullets) GetSchedule() Bullets {
 }
 
 func (b *Bullets) getIndex(id int) (int, error) {
-	if id > len(*b) || id < 1 {
+	if id < 1 {
 		return -1, fmt.Errorf("id is out of scope")
 	}
 	bl := *b
 	for i := 0; i < len(bl); i++ {
 		if bl[i].Id == uint(id) {
-			fmt.Println(id, bl[i].Id, i)
 			return i, nil
 		}
 	}
 
 	return -1, errors.New("id not found")
+}
+
+func (b *Bullets) getNextId() uint {
+	var h uint = 0
+	for _, v := range *b {
+		if v.Id > h {
+			h = v.Id
+		}
+	}
+
+	return h + 1
 }
