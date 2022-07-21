@@ -1,0 +1,36 @@
+package cmd
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/spf13/cobra"
+)
+
+var (
+	completeCmd = &cobra.Command{
+		Use:     "complete bullet-id",
+		Aliases: []string{"compl", "comp", "cpl", "c"},
+		Short:   "Complete bullet.",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			i, err := strconv.Atoi(args[0])
+			if err != nil {
+				return fmt.Errorf("could not convert '%s' to an integer", args[0])
+			}
+			if i <= 0 {
+				return fmt.Errorf("bullet id must be greater than 0")
+			}
+
+			if err := journal.Complete(i); err != nil {
+				return fmt.Errorf("could complete bullet: %s", err.Error())
+			}
+
+			return nil
+		},
+	}
+)
+
+func init() {
+	rootCmd.AddCommand(completeCmd)
+}
