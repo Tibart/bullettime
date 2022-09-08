@@ -22,7 +22,7 @@ var (
 				return fmt.Errorf("bullet id must be greater than 0")
 			}
 
-			if err := journal.Reschedule(i, 1); err != nil {
+			if err := journal.Reschedule(i); err != nil {
 				return fmt.Errorf("could not move bullet to the next day: %s", err.Error())
 			}
 

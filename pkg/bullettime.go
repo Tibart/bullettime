@@ -60,11 +60,11 @@ func (b Bullets) String() string {
 			v.Description = fmt.Sprintf("%s - %s", v.DateTime.Format("15:04"), v.Description)
 		}
 		s.WriteString(
-			fmt.Sprintf(" %03d | %s | %-34s | %-12s | %10s |\n",
+			fmt.Sprintf(" %03d | %s | %-12s | %-34s | %10s |\n",
 				v.Id,
 				v.Status.String(),
-				v.Description,
 				v.Reference,
+				v.Description,
 				v.DateTime.Format("2006-01-02")))
 	}
 
@@ -184,7 +184,7 @@ func (b *Bullets) Complete(id int) error {
 	return nil
 }
 
-func (b *Bullets) Reschedule(id, days int) error {
+func (b *Bullets) Reschedule(id int) error {
 	var err error
 	id, err = b.getIndex(id)
 	if err != nil {
@@ -193,13 +193,17 @@ func (b *Bullets) Reschedule(id, days int) error {
 
 	bl := *b
 	bullet := &bl[id]
-
 	bullet.Status = Rescheduled
 	bullet.Modified = time.Now().Local()
 
 	nb := Bullet{}
 	nb.Description = bullet.Description
-	dur, _ := time.ParseDuration(fmt.Sprintf("%dh00m", days*24))
+	dayOfTheWeek := time.Now().Weekday()
+	skipDays := 1
+	if dayOfTheWeek == time.Thursday || dayOfTheWeek == time.Friday || dayOfTheWeek == time.Saturday {
+		skipDays = 8 - int(dayOfTheWeek)
+	}
+	dur, _ := time.ParseDuration(fmt.Sprintf("%dh00m", skipDays*24))
 	nb.DateTime = bullet.DateTime.Add(dur)
 
 	b.Add(nb)
@@ -239,12 +243,11 @@ func (b *Bullets) Cancel(id int) error {
 	return nil
 }
 
-func (b *Bullets) GetSchedule() Bullets {
-	ret := Bullets{}
-
+func (b *Bullets) TodaysSchedule() Bullets {
 	// Filter only bullets of today
+	ret := Bullets{}
 	for _, v := range *b {
-		if v.DateTime.Format("2006-01-02") >= time.Now().Format("2006-01-02") &&
+		if (v.DateTime.Format("2006-01-02") >= time.Now().Format("2006-01-02") || v.Status == Scheduled) &&
 			!(v.Status == Canceled || v.Status == Postponed) {
 			ret = append(ret, v)
 		}

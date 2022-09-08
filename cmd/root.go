@@ -16,8 +16,9 @@ const (
 )
 
 var (
-	journal = &bullettime.Bullets{}
-	rootCmd = &cobra.Command{
+	all     bool = false
+	journal      = &bullettime.Bullets{}
+	rootCmd      = &cobra.Command{
 		Use:   "bullettime",
 		Short: "Execute a Bullet-time command",
 		Long: `Bullet-time, a command line interface that helps you to stay focussed 
@@ -26,14 +27,18 @@ of what you did of which bullets got postponed or send back to
 the backlog.`,
 		Version: version,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(journal.GetSchedule().String())
+			if all {
+				fmt.Println(journal.String())
+			} else {
+				fmt.Println(journal.TodaysSchedule().String())
+			}
 		},
 	}
 )
 
 func init() {
 	journal.Load(configPath)
-	rootCmd.PersistentFlags().BoolP("all", "a", false, "Show every journal entry.")
+	rootCmd.PersistentFlags().BoolVarP(&all, "all", "a", false, "Show every journal entry.")
 }
 
 func Execute() {
