@@ -193,17 +193,29 @@ func (b *Bullets) Reschedule(id int) error {
 
 	bl := *b
 	bullet := &bl[id]
+
+	if bullet.DateTime.After(time.Now()) {
+		return errors.New("Bullet is already in the future")
+	}
+
 	bullet.Status = Rescheduled
 	bullet.Modified = time.Now().Local()
 
 	nb := Bullet{}
 	nb.Description = bullet.Description
-	dayOfTheWeek := time.Now().Weekday()
-	skipDays := 1
-	if dayOfTheWeek == time.Thursday || dayOfTheWeek == time.Friday || dayOfTheWeek == time.Saturday {
-		skipDays = 8 - int(dayOfTheWeek)
+
+	// Determine days to skip
+	today := time.Now()
+	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
+	dur := today.Sub(bullet.DateTime)
+	switch today.Weekday() {
+	case time.Friday:
+		dur += time.Hour * 72
+	case time.Saturday:
+		dur += time.Hour * 48
+	default:
+		dur += time.Hour * 24
 	}
-	dur, _ := time.ParseDuration(fmt.Sprintf("%dh00m", skipDays*24))
 	nb.DateTime = bullet.DateTime.Add(dur)
 
 	b.Add(nb)
