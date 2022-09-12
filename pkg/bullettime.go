@@ -191,33 +191,38 @@ func (b *Bullets) Reschedule(id int) error {
 		return err
 	}
 
+	// Get en check movable bullet
 	bl := *b
 	bullet := &bl[id]
-
 	if bullet.DateTime.After(time.Now()) {
-		return errors.New("Bullet is already in the future")
+		return fmt.Errorf("Bullet '%03d'is already in the future", bullet.Id)
+	}
+	if bullet.Status != Scheduled {
+		return fmt.Errorf("Bullet '%03d' can't be moved, incorrect status", bullet.Id)
 	}
 
-	bullet.Status = Rescheduled
-	bullet.Modified = time.Now().Local()
-
+	// Set new bullet
 	nb := Bullet{}
 	nb.Description = bullet.Description
-
-	// Determine days to skip
-	today := time.Now()
-	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
-	dur := today.Sub(bullet.DateTime)
-	switch today.Weekday() {
+	// Check bullet time
+	bt, _ := time.ParseDuration(fmt.Sprintf("%dh%dm", bullet.DateTime.Hour(), bullet.DateTime.Minute()))
+	n := time.Now()
+	switch n.Weekday() {
 	case time.Friday:
-		dur += time.Hour * 72
+		bt += time.Hour * 72
 	case time.Saturday:
-		dur += time.Hour * 48
+		bt += time.Hour * 48
 	default:
-		dur += time.Hour * 24
+		bt += time.Hour * 24
 	}
-	nb.DateTime = bullet.DateTime.Add(dur)
+	// Set new bullet date and time
+	nb.DateTime = time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.Local).Add(bt)
 
+	// Change status original bullet
+	bullet.Modified = time.Now().Local()
+	bullet.Status = Rescheduled
+
+	// Add new bullet
 	b.Add(nb)
 
 	return nil
