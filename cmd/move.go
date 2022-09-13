@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	moveCmd = &cobra.Command{
+	days    uint = 0
+	moveCmd      = &cobra.Command{
 		Use:     "move bullet-id",
 		Aliases: []string{"m"},
 		Short:   "Moved bullet to the next day.",
@@ -22,15 +23,30 @@ var (
 			if all {
 				return journal.Reschedule()
 			}
-			i, err := strconv.Atoi(args[0])
+
+			// Validate args
+			id, err := strconv.Atoi(args[0])
 			if err != nil {
 				return fmt.Errorf("could not convert '%s' to an integer", args[0])
 			}
-			if i <= 0 {
+			if id <= 0 {
 				return fmt.Errorf("bullet id must be greater than 0")
 			}
+			d, err := strconv.Atoi(args[1])
+			if err != nil {
+				return fmt.Errorf("could not convert '%s' to an integer", args[1])
+			}
+			if d <= 0 {
+				return fmt.Errorf("number of days must be greater than 0")
+			}
 
-			if err := journal.RescheduleBullet(i); err != nil {
+			// Move bullet
+			if d > 0 {
+				return journal.Move(id, d)
+			}
+
+			// Reschedule bullet
+			if err := journal.RescheduleBullet(id); err != nil {
 				return fmt.Errorf("could not move bullet to the next day: %s", err.Error())
 			}
 
@@ -40,7 +56,8 @@ var (
 )
 
 func init() {
-	moveCmd.Flags().BoolVarP(&all, "all", "a", false, "Apply move to all scheduled bullets in the past")
+	moveCmd.Flags().BoolVarP(&all, "all", "a", false, "Apply move to all scheduled journal entries in the past")
+	moveCmd.Flags().UintVarP(&days, "days", "d", 0, "Move journal entry forward a number of days")
 	rootCmd.AddCommand(moveCmd)
 	// TODO add flag for number of days.
 }

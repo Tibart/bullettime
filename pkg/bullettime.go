@@ -241,6 +241,35 @@ func (b *Bullets) RescheduleBullet(id int) error {
 	return nil
 }
 
+func (b *Bullets) Move(id, days int) error {
+	var err error
+	id, err = b.getIndex(id)
+	if err != nil {
+		return err
+	}
+
+	// Get en check movable bullet
+	bl := *b
+	bullet := &bl[id]
+
+	// Check bullet time
+	bt, _ := time.ParseDuration(fmt.Sprintf("%dh%dm", (bullet.DateTime.Hour() + (days * 24)), bullet.DateTime.Minute()))
+
+	n := time.Now()
+	switch n.Weekday() {
+	case time.Friday:
+		bt += time.Hour * 72
+	case time.Saturday:
+		bt += time.Hour * 48
+	}
+
+	bullet.Modified = time.Now().Local()
+	bullet.Status = Scheduled
+	bullet.DateTime = time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.Local).Add(bt)
+
+	return nil
+}
+
 func (b *Bullets) Postpone(id int) error {
 	var err error
 	id, err = b.getIndex(id)
