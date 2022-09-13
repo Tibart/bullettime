@@ -32,16 +32,12 @@ var (
 			if id <= 0 {
 				return fmt.Errorf("bullet id must be greater than 0")
 			}
-			d, err := strconv.Atoi(args[1])
-			if err != nil {
-				return fmt.Errorf("could not convert '%s' to an integer", args[1])
-			}
-			if d <= 0 {
-				return fmt.Errorf("number of days must be greater than 0")
-			}
+			if len(args) > 1 {
+				d, err := strconv.Atoi(args[1])
+				if err != nil {
+					return fmt.Errorf("could not convert '%s' to an integer", args[1])
+				}
 
-			// Move bullet
-			if d > 0 {
 				return journal.Move(id, d)
 			}
 
@@ -57,7 +53,7 @@ var (
 
 func init() {
 	moveCmd.Flags().BoolVarP(&all, "all", "a", false, "Apply move to all scheduled journal entries in the past")
-	moveCmd.Flags().UintVarP(&days, "days", "d", 0, "Move journal entry forward a number of days")
+	moveCmd.Flags().UintVarP(&days, "days", "d", 0, "Move journal entry forward or backward a number of days")
 	rootCmd.AddCommand(moveCmd)
 	// TODO add flag for number of days.
 }
