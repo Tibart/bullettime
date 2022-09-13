@@ -10,7 +10,7 @@ import (
 var (
 	cancelCmd = &cobra.Command{
 		Use:     "cancel bullet-id",
-		Aliases: []string{"canc", "cncl", "c"},
+		Aliases: []string{"cncl", "stop", "rem"},
 		Short:   "Cancel bullet.",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

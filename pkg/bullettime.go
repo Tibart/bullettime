@@ -43,6 +43,7 @@ type Bullet struct {
 	Status      Status
 	Reference   string
 	Description string
+	Note        string
 	DateTime    time.Time
 	Meeting     bool
 	Created     time.Time
@@ -168,7 +169,7 @@ func (b *Bullets) Remove(id int) error {
 	return nil
 }
 
-func (b *Bullets) Complete(id int) error {
+func (b *Bullets) Complete(id int, note string) error {
 	var err error
 	id, err = b.getIndex(id)
 	if err != nil {
@@ -178,13 +179,25 @@ func (b *Bullets) Complete(id int) error {
 	bl := *b
 	bullet := &bl[id]
 
+	bullet.Note = note
 	bullet.Status = Completed
 	bullet.Modified = time.Now()
 
 	return nil
 }
 
-func (b *Bullets) Reschedule(id int) error {
+func (b *Bullets) Reschedule() error {
+	for _, v := range *b {
+		if v.Status == Scheduled {
+			if err := b.RescheduleBullet(int(v.Id)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (b *Bullets) RescheduleBullet(id int) error {
 	var err error
 	id, err = b.getIndex(id)
 	if err != nil {
@@ -266,6 +279,28 @@ func (b *Bullets) TodaysSchedule() Bullets {
 	for _, v := range *b {
 		if (v.DateTime.Format("2006-01-02") >= time.Now().Format("2006-01-02") || v.Status == Scheduled) &&
 			!(v.Status == Canceled || v.Status == Postponed) {
+			ret = append(ret, v)
+		}
+	}
+
+	return ret
+}
+
+func (b *Bullets) Postponed() Bullets {
+	ret := Bullets{}
+	for _, v := range *b {
+		if v.Status == Postponed {
+			ret = append(ret, v)
+		}
+	}
+
+	return ret
+}
+
+func (b *Bullets) Yesterday() Bullets {
+	ret := Bullets{}
+	for _, v := range *b {
+		if v.DateTime.Format("2006-01-02") == time.Now().AddDate(0, 0, -1).Format("2006-01-02") {
 			ret = append(ret, v)
 		}
 	}
