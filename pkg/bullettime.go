@@ -246,7 +246,7 @@ func (b *Bullets) Move(id, days int) error {
 		return err
 	}
 
-	// Get en check movable bullet
+	// Get and check movable bullet
 	bl := *b
 	bullet := &bl[id]
 
