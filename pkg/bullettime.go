@@ -54,19 +54,19 @@ type Bullets []Bullet
 
 func (b Bullets) String() string {
 	s := strings.Builder{}
-	s.WriteString(" Bullet-time\n")
-	s.WriteString(getLine((74)))
+	s.WriteString(getLine((80)))
 	for _, v := range b {
 		if isMeeting(v.DateTime) {
 			v.Description = fmt.Sprintf("%s - %s", v.DateTime.Format("15:04"), v.Description)
 		}
 		s.WriteString(
-			fmt.Sprintf(" %03d | %s | %-12s | %-34s | %10s |\n",
+			fmt.Sprintf(" %03d | %s | %-10s | %-60s \n",
 				v.Id,
 				v.Status.String(),
-				v.Reference,
+				v.DateTime.Format("2006-01-02"),
 				v.Description,
-				v.DateTime.Format("2006-01-02")))
+			//v.Reference,
+			))
 	}
 
 	return s.String()
@@ -188,8 +188,8 @@ func (b *Bullets) Complete(id int, note string) error {
 
 func (b *Bullets) Reschedule() error {
 	for _, v := range *b {
-		if v.Status == Scheduled {
-			if err := b.RescheduleBullet(int(v.Id)); err != nil {
+		if v.Status == Scheduled && v.DateTime.Before(time.Now()) {
+			if err := b.RescheduleBullet(int(v.Id), 0); err != nil {
 				return err
 			}
 		}
@@ -197,7 +197,7 @@ func (b *Bullets) Reschedule() error {
 	return nil
 }
 
-func (b *Bullets) RescheduleBullet(id int) error {
+func (b *Bullets) RescheduleBullet(id, days int) error {
 	var err error
 	id, err = b.getIndex(id)
 	if err != nil {
@@ -219,13 +219,11 @@ func (b *Bullets) RescheduleBullet(id int) error {
 	nb.Description = bullet.Description
 	// Check bullet time
 	bt, _ := time.ParseDuration(fmt.Sprintf("%dh%dm", bullet.DateTime.Hour(), bullet.DateTime.Minute()))
-	n := time.Now()
+	n := time.Now().AddDate(0, 0, days)
 	switch n.Weekday() {
-	case time.Friday:
-		bt += time.Hour * 72
 	case time.Saturday:
 		bt += time.Hour * 48
-	default:
+	case time.Sunday:
 		bt += time.Hour * 24
 	}
 	// Set new bullet date and time
@@ -330,6 +328,19 @@ func (b *Bullets) Yesterday() Bullets {
 	ret := Bullets{}
 	for _, v := range *b {
 		if v.DateTime.Format("2006-01-02") == time.Now().AddDate(0, 0, -1).Format("2006-01-02") {
+			ret = append(ret, v)
+		}
+	}
+
+	return ret
+}
+
+func (b *Bullets) Week() Bullets {
+	ret := Bullets{}
+	for _, v := range *b {
+		bulYear, bulWeek := v.DateTime.ISOWeek()
+		nYear, nWeek := time.Now().ISOWeek()
+		if bulYear == nYear && bulWeek == nWeek {
 			ret = append(ret, v)
 		}
 	}

@@ -11,7 +11,7 @@ import (
 
 const (
 	// TODO: Checkout viper for config implementation
-	version    = "0.2"
+	version    = "0.3"
 	configPath = "./data.json"
 )
 
@@ -19,6 +19,7 @@ var (
 	all       bool = false
 	postponed bool = false
 	yesterday bool = false
+	week      bool = false
 	journal        = &bullettime.Bullets{}
 	rootCmd        = &cobra.Command{
 		Use:   "bullettime",
@@ -29,13 +30,20 @@ of what you did of which bullets got postponed or send back to
 the backlog.`,
 		Version: version,
 		Run: func(cmd *cobra.Command, args []string) {
-			if yesterday {
+			if week {
+				fmt.Println("Bullet week journal")
+				fmt.Println(journal.Week())
+			} else if yesterday {
+				fmt.Println("Yesterdays bullets")
 				fmt.Println(journal.Yesterday())
 			} else if postponed {
+				fmt.Println("Postponed bullets")
 				fmt.Println(journal.Postponed())
 			} else if all {
+				fmt.Println("All bullets")
 				fmt.Println(journal.String())
 			} else {
+				fmt.Println("Todays bullets")
 				fmt.Println(journal.TodaysSchedule().String())
 			}
 		},
@@ -47,6 +55,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&all, "all", "a", false, "Show all journal entries")
 	rootCmd.Flags().BoolVarP(&postponed, "postponed", "p", false, "Show postponed journal entries")
 	rootCmd.Flags().BoolVarP(&yesterday, "yesterday", "y", false, "Show yesterdays journal entries")
+	rootCmd.Flags().BoolVarP(&week, "week", "w", false, "Show this weeks journal entries")
 }
 
 func Execute() {
